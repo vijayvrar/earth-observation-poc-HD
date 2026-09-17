@@ -4,134 +4,143 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Geospatial Satellite Viewer</title>
-   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; overflow: hidden; }
-    
-    .control-panel {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        z-index: 10;
-        background: rgba(15, 23, 42, 0.88);
-        backdrop-filter: blur(8px);
-        padding: 18px;
-        border-radius: 12px;
-        border: 1px solid #334155;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        width: 320px;
-        max-width: calc(100vw - 40px); /* Keeps panel bounded on mobile */
-    }
-
-    .control-panel h2 { font-size: 1.1rem; margin-bottom: 12px; color: #38bdf8; }
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
-    
-    input, select, button {
-        width: 100%;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: 1px solid #334155;
-        background: #1e293b;
-        color: #f8fafc;
-        font-size: 0.9rem;
-        outline: none;
-    }
-
-    .button-group { margin-top: 10px; }
-
-    button {
-        background: #0284c7;
-        border: none;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    button:hover { background: #0369a1; }
-    button.secondary { background: #334155; }
-    button.secondary:hover { background: #475569; }
-
-    #webgl-container { width: 100vw; height: 100vh; display: block; }
-    
-    .help-overlay {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(15, 23, 42, 0.8);
-        padding: 10px 14px;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        font-size: 0.8rem;
-        color: #94a3b8;
-        pointer-events: none;
-    }
-
-    /* Mobile Responsive Breakpoint */
-    @media (max-width: 600px) {
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; overflow: hidden; }
+        
         .control-panel {
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1rem; color: #38bdf8; }
+        
+        .toggle-btn {
+            display: none; /* Hidden on desktop */
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #38bdf8;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
             width: auto;
-            max-width: none;
-            padding: 12px;
         }
 
-        .control-panel h2 {
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 6px;
-        }
-
+        .form-group { margin-top: 10px; }
+        .form-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+        
         input, select, button {
-            padding: 6px 10px;
-            font-size: 0.82rem;
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: #f8fafc;
+            font-size: 0.85rem;
+            outline: none;
         }
 
+        .button-group { margin-top: 10px; }
+
+        button.primary { background: #0284c7; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        button.primary:hover { background: #0369a1; }
+        button.secondary { background: #334155; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        button.secondary:hover { background: #475569; }
+
+        #webgl-container { width: 100vw; height: 100vh; display: block; }
+        
         .help-overlay {
-            display: none; /* Hide desktop control hints on mobile touchscreens */
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            pointer-events: none;
         }
-    }
-</style>
+
+        /* Mobile Collapsible Breakpoint */
+        @media (max-width: 600px) {
+            .control-panel {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                width: auto;
+                padding: 10px 14px;
+            }
+
+            .toggle-btn { display: block; }
+
+            /* Collapsed state hides input forms on small screens */
+            .control-panel.collapsed .panel-body {
+                display: none;
+            }
+
+            .help-overlay { display: none; }
+        }
+    </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-    <div class="control-panel">
-        <h2>3D Geospatial Viewer</h2>
-        
-        <div class="form-group">
-            <label for="presets">Quick Presets</label>
-            <select id="presets">
-                <option value="">-- Select Landmark --</option>
-                <option value="9.9195,78.1190">Meenakshi Temple, Madurai</option>
-                <option value="13.0628,80.2796">Chepauk Stadium, Chennai</option>
-                <option value="27.9881,86.9250">Mount Everest, Nepal</option>
-                <option value="36.0544,-112.1401">Grand Canyon, USA</option>
-            </select>
+    <div class="control-panel" id="panel">
+        <div class="panel-header">
+            <h2>3D Geospatial Viewer</h2>
+            <button type="button" class="toggle-btn" id="toggle-panel-btn">Hide controls</button>
         </div>
 
-        <form method="POST" id="geo-form">
+        <div class="panel-body">
             <div class="form-group">
-                <label for="latitude">Latitude</label>
-                <input type="text" id="latitude" name="latitude" placeholder="e.g. 9.9195" required value="{% if data and data.latitude %}{{ data.latitude }}{% endif %}">
+                <label for="presets">Quick Presets</label>
+                <select id="presets">
+                    <option value="">-- Select Landmark --</option>
+                    <option value="9.9195,78.1190">Meenakshi Temple, Madurai</option>
+                    <option value="13.0628,80.2796">Chepauk Stadium, Chennai</option>
+                    <option value="27.9881,86.9250">Mount Everest, Nepal</option>
+                    <option value="36.0544,-112.1401">Grand Canyon, USA</option>
+                </select>
             </div>
-            <div class="form-group">
-                <label for="longitude">Longitude</label>
-                <input type="text" id="longitude" name="longitude" placeholder="e.g. 78.1190" required value="{% if data and data.longitude %}{{ data.longitude }}{% endif %}">
-            </div>
-            
-            <button type="submit">Fetch & Render 3D</button>
-        </form>
 
-        <div class="button-group">
-            <button type="button" class="secondary" id="reset-cam-btn">Reset View</button>
+            <form method="POST" id="geo-form">
+                <div class="form-group">
+                    <label for="latitude">Latitude</label>
+                    <input type="text" id="latitude" name="latitude" placeholder="e.g. 9.9195" required value="{% if data and data.latitude %}{{ data.latitude }}{% endif %}">
+                </div>
+                <div class="form-group">
+                    <label for="longitude">Longitude</label>
+                    <input type="text" id="longitude" name="longitude" placeholder="e.g. 78.1190" required value="{% if data and data.longitude %}{{ data.longitude }}{% endif %}">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="primary">Fetch & Render 3D</button>
+                </div>
+            </form>
+
+            <div class="button-group">
+                <button type="button" class="secondary" id="reset-cam-btn">Reset View</button>
+            </div>
         </div>
     </div>
 
@@ -144,7 +153,16 @@
     <div id="webgl-container"></div>
 
     <script>
-        // Auto-fill and submit form when preset selection changes
+        // 1. Mobile Panel Toggle Logic
+        const panel = document.getElementById('panel');
+        const toggleBtn = document.getElementById('toggle-panel-btn');
+
+        toggleBtn.addEventListener('click', () => {
+            panel.classList.toggle('collapsed');
+            toggleBtn.innerText = panel.classList.contains('collapsed') ? 'Show controls' : 'Hide controls';
+        });
+
+        // 2. Preset Selection Listener with Auto-Submit
         document.getElementById('presets').addEventListener('change', function(e) {
             if (e.target.value) {
                 const parts = e.target.value.split(',');
@@ -154,12 +172,18 @@
             }
         });
 
-        // Read Base64 URI string safely from dataset
+        // 3. Read Base64 Data Payload
         const dataStore = document.getElementById('image-data-store');
         const imageData = dataStore ? dataStore.dataset.image : '';
 
         if (imageData) {
-            // 1. Scene & Camera Setup
+            // Auto-collapse panel on mobile after rendering image
+            if (window.innerWidth <= 600) {
+                panel.classList.add('collapsed');
+                toggleBtn.innerText = 'Show controls';
+            }
+
+            // Three.js Scene Setup
             const container = document.getElementById('webgl-container');
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
@@ -172,16 +196,16 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // 2. Orbit Controls
+            // Orbit Controls
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
 
-            // 3. Lighting
+            // Ambient Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(ambientLight);
 
-            // 4. Texture Loader & Mesh Mapping
+            // Texture & Geometry Mapping
             const textureLoader = new THREE.TextureLoader();
             const texture = textureLoader.load(imageData);
             texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -195,7 +219,7 @@
             plane.rotation.x = -Math.PI / 2;
             scene.add(plane);
 
-            // 5. Render Loop
+            // Animation Loop
             const animate = function() {
                 requestAnimationFrame(animate);
                 controls.update();
@@ -203,7 +227,7 @@
             };
             animate();
 
-            // 6. Camera Reset Listener
+            // Camera Reset Action
             document.getElementById('reset-cam-btn').addEventListener('click', function() {
                 camera.position.set(0, 8, 8);
                 controls.reset();
