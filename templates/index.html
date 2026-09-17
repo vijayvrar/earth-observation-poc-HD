@@ -3,53 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NASA Earthdata 10m Viewer</title>
+    <title>3D Geospatial Satellite Viewer</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #0f172a; color: #f8fafc; }
-        .card { background: #1e293b; padding: 24px; border-radius: 12px; max-width: 650px; margin: 0 auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 4px; font-size: 14px; color: #94a3b8; }
-        input { padding: 10px; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; }
-        button { background: #2563eb; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #1d4ed8; }
-        .image-container { margin-top: 20px; text-align: center; }
-        img { max-width: 100%; border-radius: 8px; border: 1px solid #475569; }
-        .error { color: #f87171; margin-top: 15px; }
-        .card {
-    max-width: 850px; /* Expand card width to accommodate wider image */
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; overflow: hidden; }
+        
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(8px);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 320px;
+        }
 
-img {
-    width: 100%;
-    max-width: 700px; /* Scale up image display area */
-    border-radius: 8px;
-    border: 1px solid #475569;
-}
+        .control-panel h2 { font-size: 1.1rem; margin-bottom: 12px; color: #38bdf8; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+        
+        input, select, button {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .button-group { margin-top: 10px; }
+
+        button {
+            background: #0284c7;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #0369a1; }
+        button.secondary { background: #334155; }
+        button.secondary:hover { background: #475569; }
+
+        #webgl-container { width: 100vw; height: 100vh; display: block; }
+        
+        .help-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            pointer-events: none;
+        }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div class="card">
-        <h2>NASA Earthdata 10m Satellite Viewer</h2>
-        <form method="POST">
+
+    <div class="control-panel">
+        <h2>3D Geospatial Viewer</h2>
+        
+        <div class="form-group">
+            <label for="presets">Quick Presets</label>
+            <select id="presets">
+                <option value="">-- Select Landmark --</option>
+                <option value="9.9195,78.1190">Meenakshi Temple, Madurai</option>
+                <option value="13.0628,80.2796">Chepauk Stadium, Chennai</option>
+                <option value="27.9881,86.9250">Mount Everest, Nepal</option>
+                <option value="36.0544,-112.1401">Grand Canyon, USA</option>
+            </select>
+        </div>
+
+        <form method="POST" id="geo-form">
             <div class="form-group">
-                <label>Latitude:</label>
-                <input type="text" name="lat" value="{{ lat or '37.7749' }}" required>
+                <label for="latitude">Latitude</label>
+                <input type="text" id="latitude" name="latitude" placeholder="e.g. 9.9195" required value="{% if data and data.latitude %}{{ data.latitude }}{% endif %}">
             </div>
             <div class="form-group">
-                <label>Longitude:</label>
-                <input type="text" name="lon" value="{{ lon or '-122.4194' }}" required>
+                <label for="longitude">Longitude</label>
+                <input type="text" id="longitude" name="longitude" placeholder="e.g. 78.1190" required value="{% if data and data.longitude %}{{ data.longitude }}{% endif %}">
             </div>
-            <button type="submit">Fetch 10m Scene</button>
+            
+            <button type="submit">Fetch & Render 3D</button>
         </form>
 
-{% if image_data %}
-    <div class="image-container">
-        <h3>Satellite Snapshot (Date: {{ observation }})</h3>
-        <img src="{{ image_data }}" alt="Satellite Scene">
+        <div class="button-group">
+            <button type="button" class="secondary" id="reset-cam-btn">Reset View</button>
+        </div>
     </div>
-{% elif error_message %}
-    <p style="color: #f87171;">Error: {{ error_message }}</p>
-{% endif %}
+
+    <div class="help-overlay">
+        🖱️ Left Click + Drag: Rotate | Right Click + Drag: Pan | Scroll: Zoom
     </div>
+
+    <div id="image-data-store" data-image="{% if data and data.image %}{{ data.image }}{% endif %}"></div>
+
+    <div id="webgl-container"></div>
+
+    <script>
+        // Auto-fill and submit form when preset selection changes
+        document.getElementById('presets').addEventListener('change', function(e) {
+            if (e.target.value) {
+                const parts = e.target.value.split(',');
+                document.getElementById('latitude').value = parts[0];
+                document.getElementById('longitude').value = parts[1];
+                document.getElementById('geo-form').submit();
+            }
+        });
+
+        // Read Base64 URI string safely from dataset
+        const dataStore = document.getElementById('image-data-store');
+        const imageData = dataStore ? dataStore.dataset.image : '';
+
+        if (imageData) {
+            // 1. Scene & Camera Setup
+            const container = document.getElementById('webgl-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 8);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // 2. Orbit Controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 3. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+
+            // 4. Texture Loader & Mesh Mapping
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(imageData);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+            const geometry = new THREE.PlaneGeometry(10, 10);
+            const material = new THREE.MeshStandardMaterial({ 
+                map: texture, 
+                side: THREE.DoubleSide 
+            });
+            const plane = new THREE.Mesh(geometry, material);
+            plane.rotation.x = -Math.PI / 2;
+            scene.add(plane);
+
+            // 5. Render Loop
+            const animate = function() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            // 6. Camera Reset Listener
+            document.getElementById('reset-cam-btn').addEventListener('click', function() {
+                camera.position.set(0, 8, 8);
+                controls.reset();
+            });
+
+            window.addEventListener('resize', function() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+    </script>
 </body>
 </html>
