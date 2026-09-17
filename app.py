@@ -1,35 +1,29 @@
-from eo import get_satellite_image
 from flask import Flask, render_template, request
+from eo import get_stitched_satellite_image
 
 app = Flask(__name__)
 
-
-@app.route("/", methods=["GET", "POST"])
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    result = None
-    lat = lon = None
-    requested = False
-    error_message = None
-
-    if request.method == "POST":
-        requested = True
+    data = None
+    if request.method == 'POST':
         try:
-            lat = float(request.form["lat"])
-            lon = float(request.form["lon"])
-            result = get_satellite_image(lat, lon)
-        except Exception as e:
-            error_message = str(e)
+            lat = float(request.form.get('latitude'))
+            lon = float(request.form.get('longitude'))
+            
+            # Fetch stitched satellite imagery from eo.py
+            base64_image = get_stitched_satellite_image(lat, lon)
+            
+            # Package payload for index.html
+            data = {
+                'latitude': lat,
+                'longitude': lon,
+                'image': base64_image
+            }
+        except (ValueError, TypeError) as e:
+            print(f"Invalid input submission: {e}")
+            
+    return render_template('index.html', data=data)
 
-    return render_template(
-        "index.html",
-        image_data=result["image"] if result else None,
-        observation=result["observation"] if result else None,
-        lat=lat,
-        lon=lon,
-        requested=requested,
-        error_message=error_message,
-    )
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
